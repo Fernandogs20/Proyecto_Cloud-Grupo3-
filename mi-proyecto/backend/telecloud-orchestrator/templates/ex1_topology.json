@@ -1,0 +1,96 @@
+{
+  "name": "ex1",
+  "description": "Topologia de validacion EX1 con 6 VMs, enlaces L2 aislados y red de acceso para VM1 y VM3",
+
+  "flavors": {
+    "ubuntu-small": {
+      "cores": 1,
+      "ram_mb": 512,
+      "disk_gb": 2.2,
+      "image": "ubuntu"
+    },
+    "cirros-small": {
+      "cores": 1,
+      "ram_mb": 512,
+      "disk_gb": 1.0,
+      "image": "cirros"
+    }
+  },
+
+  "vms": {
+    "vm1": {
+      "flavor": "ubuntu-small",
+      "worker": "worker1",
+      "internet": true,
+      "ssh_public": true
+    },
+    "vm2": {
+      "flavor": "cirros-small",
+      "worker": "worker2",
+      "internet": false,
+      "ssh_public": false
+    },
+    "vm3": {
+      "flavor": "ubuntu-small",
+      "worker": "worker3",
+      "internet": true,
+      "ssh_public": true
+    },
+    "vm4": {
+      "flavor": "ubuntu-small",
+      "worker": "worker1",
+      "internet": false,
+      "ssh_public": false
+    },
+    "vm5": {
+      "flavor": "ubuntu-small",
+      "worker": "worker2",
+      "internet": false,
+      "ssh_public": false
+    },
+    "vm6": {
+      "flavor": "cirros-small",
+      "worker": "worker3",
+      "internet": false,
+      "ssh_public": false
+    }
+  },
+
+  "links": [
+    {
+      "name": "link_vm1_vm2",
+      "endpoints": ["vm1", "vm2"]
+    },
+    {
+      "name": "link_vm2_vm3",
+      "endpoints": ["vm2", "vm3"]
+    },
+    {
+      "name": "link_vm3_vm1",
+      "endpoints": ["vm3", "vm1"]
+    },
+    {
+      "name": "link_vm4_vm1",
+      "endpoints": ["vm4", "vm1"]
+    },
+    {
+      "name": "link_vm4_vm3",
+      "endpoints": ["vm4", "vm3"]
+    },
+    {
+      "name": "link_vm4_vm5",
+      "endpoints": ["vm4", "vm5"]
+    },
+    {
+      "name": "link_vm5_vm6",
+      "endpoints": ["vm5", "vm6"]
+    }
+  ],
+
+  "access_network": {
+    "name": "access_net",
+    "vms": ["vm1", "vm3"],
+    "internet": true,
+    "ssh_from_external": true
+  }
+}
