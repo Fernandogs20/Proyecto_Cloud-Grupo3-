@@ -1,0 +1,35 @@
+# Dependencias del Orchestrator - PUCP Grupo 3
+
+# Framework web
+Flask==2.3.2
+Flask-RESTful==0.3.10
+
+# ORM y persistencia (si se necesita)
+SQLAlchemy==2.0.19
+
+# Autenticación
+PyJWT==2.8.0
+
+# Validación de datos
+pydantic==2.0.0
+
+# Logging mejorado
+python-logging-loki==0.3.2
+
+# Testing
+pytest==7.4.0
+pytest-cov==4.1.0
+
+# Linting y formato
+black==23.7.0
+flake8==6.0.0
+mypy==1.4.1
+
+# Utilidades
+python-dotenv==1.0.0
+requests==2.31.0
+ipaddress==1.0.23
+
+# Documentación
+Sphinx==7.1.2
+sphinx-rtd-theme==1.2.2
