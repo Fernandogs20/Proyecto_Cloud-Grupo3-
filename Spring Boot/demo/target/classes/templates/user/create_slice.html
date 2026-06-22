@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Slices</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        body {
+            background: #f5f5f5;
+            color: #1f1f1f;
+        }
+
+        .app {
+            min-height: 100vh;
+        }
+
+        .topbar {
+            height: 52px;
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .logo {
+            width: 24px;
+            height: 24px;
+            position: relative;
+            transform: rotate(45deg);
+            border: 4px solid #1e88ff;
+            border-radius: 5px;
+        }
+
+        .logo::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            background: #ff4d6d;
+            border-radius: 50%;
+            position: absolute;
+            top: 5px;
+            left: 5px;
+        }
+
+        .logo::after {
+            content: "";
+            width: 10px;
+            height: 4px;
+            background: #1e88ff;
+            position: absolute;
+            right: -10px;
+            top: 7px;
+            border-radius: 6px;
+        }
+
+        .user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #8c8c8c;
+            font-size: 15px;
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #bfbfbf;
+        }
+
+        .layout {
+            display: flex;
+            padding-top: 52px;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 270px;
+            background: #fafafa;
+            border-right: 1px solid #e8e8e8;
+            padding: 12px;
+            position: fixed;
+            top: 52px;
+            bottom: 0;
+            left: 0;
+        }
+
+        .collapse {
+            position: absolute;
+            top: 22px;
+            right: -14px;
+            width: 28px;
+            height: 28px;
+            border: 1px solid #eeeeee;
+            border-radius: 50%;
+            background: #ffffff;
+            color: #bfbfbf;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-item {
+            height: 42px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 16px;
+            border-radius: 6px;
+            color: #595959;
+            cursor: pointer;
+            font-size: 15px;
+            margin-bottom: 4px;
+            transition: 0.2s;
+        }
+
+        .menu-item:hover {
+            background: #f0f0f0;
+        }
+
+        .menu-item.active {
+            background: #eeeeee;
+            color: #1f1f1f;
+        }
+
+        .menu-spaced {
+            justify-content: space-between;
+        }
+
+        .main {
+            margin-left: 270px;
+            width: calc(100% - 270px);
+            padding: 28px 44px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 26px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 18px 28px;
+            border-bottom: 1px solid #eeeeee;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .card-body {
+            padding: 24px 28px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .action-card {
+            border: 1px solid #e8e8e8;
+            border-radius: 5px;
+            height: 110px;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 700;
+        }
+
+        .action-card:hover {
+            border-color: #1677ff;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .action-icon {
+            font-size: 34px;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .blue { color: #1677ff; }
+        .orange { color: #faad14; }
+        .green { color: #52c41a; }
+        .cyan { color: #13c2c2; }
+        .purple { color: #722ed1; }
+        .red { color: #ff4d4f; }
+
+        .breadcrumb {
+            color: #8c8c8c;
+            font-size: 14px;
+            margin-bottom: 26px;
+        }
+
+        .breadcrumb strong {
+            color: #1f1f1f;
+            margin-left: 8px;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+
+        .btn {
+            border: 1px solid #d9d9d9;
+            background: #ffffff;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            border-color: #1677ff;
+            color: #1677ff;
+        }
+
+        .btn-primary {
+            background: #1677ff;
+            border-color: #1677ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0958d9;
+            color: white;
+        }
+
+        .btn-danger {
+            color: #ff4d4f;
+            border-color: #ff4d4f;
+            background: #ffffff;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .wizard-card {
+            background: #ffffff;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 26px;
+            min-height: 650px;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 62px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            position: relative;
+        }
+
+        .step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 16px;
+            left: 190px;
+            right: -16px;
+            height: 2px;
+            background: #d9d9d9;
+        }
+
+        .step.done:not(:last-child)::after,
+        .step.active:not(:last-child)::after {
+            background: #75aaff;
+        }
+
+        .step-number {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            color: #8c8c8c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step.active .step-number {
+            background: #1677ff;
+            color: #ffffff;
+        }
+
+        .step.done .step-number {
+            background: #e6f4ff;
+            color: #1677ff;
+        }
+
+        .step-title {
+            font-size: 17px;
+            color: #8c8c8c;
+        }
+
+        .step.active .step-title,
+        .step.done .step-title {
+            color: #1f1f1f;
+        }
+
+        .step-subtitle {
+            margin-top: 6px;
+            color: #8c8c8c;
+            font-size: 15px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .topology-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 26px;
+        }
+
+        .topology-card {
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            height: 180px;
+            padding: 24px 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            background: #ffffff;
+        }
+
+        .topology-card:hover,
+        .topology-card.selected {
+            border-color: #1677ff;
+            box-shadow: 0 4px 14px rgba(22, 119, 255, 0.12);
+        }
+
+        .topology-drawing {
+            height: 54px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #000000;
+        }
+
+        .topology-card h3 {
+            font-size: 17px;
+            margin-bottom: 10px;
+        }
+
+        .topology-card p {
+            color: #8c8c8c;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .divider {
+            height: 1px;
+            background: #eeeeee;
+            margin: 22px 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .required {
+            color: #ff4d4f;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid transparent;
+            background: #f1f1f1;
+            height: 38px;
+            border-radius: 6px;
+            padding: 0 12px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 80px;
+            padding-top: 12px;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: #1677ff;
+            background: #ffffff;
+        }
+
+        .wizard-footer {
+            border-top: 1px solid #eeeeee;
+            margin-top: 50px;
+            padding-top: 16px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .vm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+
+        .empty-state {
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8c8c8c;
+            text-align: center;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            opacity: 0.25;
+        }
+
+        .add-vm-line {
+            border: 1px dashed #d9d9d9;
+            height: 38px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #1f1f1f;
+            margin-top: 22px;
+        }
+
+        .vm-card {
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+
+        .vm-form {
+            width: 360px;
+        }
+
+        .info-alert {
+            background: #e6f4ff;
+            border: 1px solid #91caff;
+            border-radius: 6px;
+            padding: 18px 24px;
+            display: flex;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .info-alert-icon {
+            width: 24px;
+            height: 24px;
+            background: #1677ff;
+            color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .review-card {
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .review-card h3 {
+            padding: 18px 24px;
+            border-bottom: 1px solid #eeeeee;
+            font-size: 17px;
+        }
+
+        .review-body {
+            padding: 24px;
+        }
+
+        .review-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eeeeee;
+            font-size: 15px;
+        }
+
+        .review-row:last-child {
+            border-bottom: none;
+        }
+
+        .review-label {
+            color: #595959;
+            font-weight: 700;
+        }
+
+        .tag {
+            background: #e6f4ff;
+            color: #1677ff;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .vm-summary-card {
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 24px;
+        }
+
+        .vm-summary-card h3 {
+            padding: 18px 24px;
+            border-bottom: 1px solid #eeeeee;
+            font-size: 17px;
+        }
+
+        .vm-summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 24px;
+            background: #fafafa;
+            padding: 14px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 26px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 28px;
+            height: 120px;
+        }
+
+        .stat-title {
+            color: #8c8c8c;
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            color: #1f1f1f;
+        }
+
+        .table-card {
+            background: #ffffff;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 48px;
+        }
+
+        .table-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 26px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            font-size: 15px;
+        }
+
+        th {
+            text-align: left;
+            background: #fafafa;
+            padding: 14px 10px;
+            border-bottom: 1px solid #eeeeee;
+        }
+
+        td {
+            padding: 14px 10px;
+            border-bottom: 1px solid #eeeeee;
+        }
+
+        .link {
+            color: #1677ff;
+            cursor: pointer;
+        }
+
+        .status-running {
+            background: #f6ffed;
+            color: #389e0d;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .status-stopped {
+            background: #fff1f0;
+            color: #ff4d4f;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .page-number {
+            border: 1px solid #1677ff;
+            color: #1677ff;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 1100px) {
+            .action-grid,
+            .stats-grid,
+            .review-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topology-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .sidebar {
+                width: 230px;
+            }
+
+            .main {
+                margin-left: 230px;
+                width: calc(100% - 230px);
+                padding: 24px;
+            }
+
+            .step:not(:last-child)::after {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="app">
+
+    <header class="topbar">
+        <div class="brand">
+            <div class="logo"></div>
+            <span>Panel de Slices</span>
+        </div>
+
+        <div class="user">
+            <div class="avatar"></div>
+            <span>Usuario</span>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="collapse">‹</div>
+
+            <div class="menu-item active" data-page="home">
+                <span>⌂</span>
+                <span>Home</span>
+            </div>
+
+            <div class="menu-item" data-page="slices">
+                <span>▦</span>
+                <span>Mis Slices</span>
+            </div>
+
+            <div class="menu-item" data-page="create">
+                <span>＋</span>
+                <span>Crear Slice</span>
+            </div>
+
+            <div class="menu-item menu-spaced">
+                <div>
+                    <span>▤</span>
+                    <span>Recursos</span>
+                </div>
+                <span>⌄</span>
+            </div>
+        </aside>
+
+        <main class="main">
+
+            <!-- HOME -->
+            <section id="home" class="page active">
+                <h1 class="page-title">Home</h1>
+
+                <div class="card">
+                    <div class="card-header">Acciones disponibles</div>
+
+                    <div class="card-body">
+                        <div class="action-grid">
+                            <div class="action-card" data-page="create">
+                                <div class="action-icon blue">＋</div>
+                                <div>Crear Slice</div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-icon orange">✎</div>
+                                <div>Editar y configurar</div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-icon green">⇩</div>
+                                <div>Plantillas</div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-icon cyan">▭</div>
+                                <div>Monitoreo</div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-icon purple">⊙</div>
+                                <div>Consola</div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-icon red">▢</div>
+                                <div>Eliminar</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MIS SLICES -->
+            <section id="slices" class="page">
+                <div class="header-row">
+                    <h1 class="page-title">Mis Slices</h1>
+                    <button class="btn btn-primary" data-page="create">＋ Crear Slice</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Total de Slices</div>
+                        <div class="stat-value">▱ <span id="totalSlices">3</span></div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-title">En ejecución</div>
+                        <div class="stat-value green" id="runningSlices">2</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-title">Total de VMs</div>
+                        <div class="stat-value" id="totalVms">25</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-title">Uso promedio de CPU</div>
+                        <div class="stat-value">35.7 %</div>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-top">
+                        <h3>Slice</h3>
+                        <div>⟳ &nbsp; ↕ &nbsp; ⚙</div>
+                    </div>
+
+                    <table>
+                        <thead>
+                        <tr>
+                            <th><input type="checkbox"></th>
+                            <th>Nombre del Slice</th>
+                            <th>Topología</th>
+                            <th>Estado</th>
+                            <th>VMs</th>
+                            <th>Uso de CPU</th>
+                            <th>Uso de Memoria</th>
+                            <th>Creado</th>
+                            <th>Acciones</th>
+                        </tr>
+                        </thead>
+
+                        <tbody id="sliceTable">
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td><span class="link">▱ Cluster de Producción</span></td>
+                            <td><span class="tag">Malla</span></td>
+                            <td><span class="status-running">EN EJECUCIÓN</span></td>
+                            <td><strong>12</strong></td>
+                            <td>75%</td>
+                            <td>82%</td>
+                            <td>2026-05-15</td>
+                            <td>⊙ &nbsp; ✎ &nbsp; ⋮</td>
+                        </tr>
+
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td><span class="link">▱ Entorno de Desarrollo</span></td>
+                            <td><span class="tag">Lineal</span></td>
+                            <td><span class="status-running">EN EJECUCIÓN</span></td>
+                            <td><strong>5</strong></td>
+                            <td>32%</td>
+                            <td>48%</td>
+                            <td>2026-05-10</td>
+                            <td>⊙ &nbsp; ✎ &nbsp; ⋮</td>
+                        </tr>
+
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td><span class="link">▱ Red de Pruebas</span></td>
+                            <td><span class="tag">Árbol</span></td>
+                            <td><span class="status-stopped">DETENIDO</span></td>
+                            <td><strong>8</strong></td>
+                            <td>0%</td>
+                            <td>0%</td>
+                            <td>2026-04-20</td>
+                            <td>⊙ &nbsp; ✎ &nbsp; ⋮</td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="pagination">
+                        <span>1-3 de 3 artículos</span>
+                        <span>‹</span>
+                        <span class="page-number">1</span>
+                        <span>›</span>
+                        <select style="width: 110px;">
+                            <option>10 / página</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CREATE SLICE -->
+            <section id="create" class="page">
+                <div class="breadcrumb">
+                    Mis Slices /
+                    <strong>Crear</strong>
+                </div>
+
+                <div class="header-row">
+                    <h1 class="page-title">Crear Slice</h1>
+                    <button class="btn" data-page="home">← Volver</button>
+                </div>
+
+                <div class="wizard-card">
+
+                    <div class="steps">
+                        <div id="stepIndicator1" class="step active">
+                            <div class="step-number">1</div>
+                            <div>
+                                <div class="step-title">Información básica</div>
+                                <div class="step-subtitle">Topología y nombre</div>
+                            </div>
+                        </div>
+
+                        <div id="stepIndicator2" class="step">
+                            <div class="step-number">2</div>
+                            <div>
+                                <div class="step-title">Configuración de VMs</div>
+                                <div class="step-subtitle">Agregar VMs</div>
+                            </div>
+                        </div>
+
+                        <div id="stepIndicator3" class="step">
+                            <div class="step-number">3</div>
+                            <div>
+                                <div class="step-title">Revisión</div>
+                                <div class="step-subtitle">Confirmar y crear</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 1 -->
+                    <div id="wizardStep1" class="wizard-step">
+                        <div class="section-title">Selecciona la topología</div>
+
+                        <div class="topology-grid">
+                            <div class="topology-card selected" data-topology="Lineal">
+                                <div class="topology-drawing">━━━━</div>
+                                <h3>Lineal</h3>
+                                <p>Nodos organizados en línea. Útil para cadenas simples.</p>
+                            </div>
+
+                            <div class="topology-card" data-topology="Malla">
+                                <div class="topology-drawing">♢♢♢</div>
+                                <h3>Malla</h3>
+                                <p>Todos los nodos conectados entre sí. Máxima redundancia.</p>
+                            </div>
+
+                            <div class="topology-card" data-topology="Árbol">
+                                <div class="topology-drawing">🌳</div>
+                                <h3>Árbol</h3>
+                                <p>Estructura jerárquica. Útil para sistemas distribuidos.</p>
+                            </div>
+
+                            <div class="topology-card" data-topology="Anillo">
+                                <div class="topology-drawing">○○○</div>
+                                <h3>Anillo</h3>
+                                <p>Nodos organizados en círculo. Útil para balanceo de carga.</p>
+                            </div>
+
+                            <div class="topology-card" data-topology="Bus">
+                                <div class="topology-drawing">══</div>
+                                <h3>Bus</h3>
+                                <p>Todos los nodos comparten un bus común. Red de difusión simple.</p>
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="form-group">
+                            <label><span class="required">*</span> Nombre del Slice ⓘ</label>
+                            <input id="sliceName" type="text" placeholder="Ej.: Mi cluster de producción">
+                        </div>
+
+                        <div class="wizard-footer">
+                            <button class="btn btn-primary" onclick="goStep(2)">Siguiente</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2 -->
+                    <div id="wizardStep2" class="wizard-step" style="display: none;">
+                        <div class="vm-header">
+                            <div class="section-title">Configura las máquinas virtuales</div>
+                            <button class="btn btn-primary" onclick="addVm()">＋ Agregar VM</button>
+                        </div>
+
+                        <div id="vmContainer">
+                            <div class="empty-state" id="emptyVmState">
+                                <div class="empty-icon">🖨</div>
+                                <p>Aún no agregaste VMs</p>
+                            </div>
+                        </div>
+
+                        <div class="add-vm-line" onclick="addVm()">＋ Agregar otra VM</div>
+
+                        <div class="wizard-footer">
+                            <button class="btn" onclick="goStep(1)">Anterior</button>
+                            <button class="btn btn-primary" onclick="goStep(3)">Siguiente</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3 -->
+                    <div id="wizardStep3" class="wizard-step" style="display: none;">
+                        <div class="info-alert">
+                            <div class="info-alert-icon">i</div>
+                            <div>
+                                <h3>Revisa tu configuración</h3>
+                                <p style="margin-top: 8px;">Verifica todos los detalles antes de crear el slice</p>
+                            </div>
+                        </div>
+
+                        <div class="review-grid">
+                            <div class="review-card">
+                                <h3>Información del Slice</h3>
+                                <div class="review-body">
+                                    <div class="review-row">
+                                        <span class="review-label">Nombre:</span>
+                                        <strong id="reviewName">-</strong>
+                                    </div>
+
+                                    <div class="review-row">
+                                        <span class="review-label">Topología:</span>
+                                        <span class="tag" id="reviewTopology">Lineal</span>
+                                    </div>
+
+                                    <div class="review-row">
+                                        <span class="review-label">Total de VMs:</span>
+                                        <strong id="reviewVmCount">0</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="review-card">
+                                <h3>Resumen de recursos</h3>
+                                <div class="review-body">
+                                    <div class="review-row">
+                                        <span class="review-label">Total de núcleos CPU:</span>
+                                        <strong id="reviewCpu">0</strong>
+                                    </div>
+
+                                    <div class="review-row">
+                                        <span class="review-label">Memoria total (GB):</span>
+                                        <strong id="reviewRam">0</strong>
+                                    </div>
+
+                                    <div class="review-row">
+                                        <span class="review-label">Almacenamiento total (GB):</span>
+                                        <strong id="reviewDisk">0</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="vm-summary-card">
+                            <h3>Máquinas virtuales</h3>
+                            <div id="reviewVmList"></div>
+                        </div>
+
+                        <div class="wizard-footer">
+                            <button class="btn" onclick="goStep(2)">Anterior</button>
+                            <button class="btn btn-primary" onclick="createSlice()">▣ Crear Slice</button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    let selectedTopology = "Lineal";
+    let vmCounter = 0;
+
+    const pages = document.querySelectorAll(".page");
+    const menuItems = document.querySelectorAll(".menu-item[data-page]");
+    const pageButtons = document.querySelectorAll("[data-page]");
+
+    pageButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const page = btn.getAttribute("data-page");
+            showPage(page);
+        });
+    });
+
+    function showPage(pageId) {
+        pages.forEach(page => page.classList.remove("active"));
+        document.getElementById(pageId).classList.add("active");
+
+        menuItems.forEach(item => {
+            item.classList.toggle("active", item.getAttribute("data-page") === pageId);
+        });
+
+        if (pageId === "create") {
+            goStep(1);
+        }
+    }
+
+    document.querySelectorAll(".topology-card").forEach(card => {
+        card.addEventListener("click", () => {
+            document.querySelectorAll(".topology-card").forEach(c => c.classList.remove("selected"));
+            card.classList.add("selected");
+            selectedTopology = card.getAttribute("data-topology");
+        });
+    });
+
+    function goStep(step) {
+        document.querySelectorAll(".wizard-step").forEach(s => s.style.display = "none");
+
+        document.getElementById("wizardStep" + step).style.display = "block";
+
+        for (let i = 1; i <= 3; i++) {
+            const indicator = document.getElementById("stepIndicator" + i);
+            indicator.classList.remove("active", "done");
+
+            const number = indicator.querySelector(".step-number");
+
+            if (i < step) {
+                indicator.classList.add("done");
+                number.textContent = "✓";
+            } else if (i === step) {
+                indicator.classList.add("active");
+                number.textContent = i;
+            } else {
+                number.textContent = i;
+            }
+        }
+
+        if (step === 3) {
+            updateReview();
+        }
+    }
+
+    function addVm() {
+        vmCounter++;
+
+        const empty = document.getElementById("emptyVmState");
+        if (empty) {
+            empty.remove();
+        }
+
+        const vmContainer = document.getElementById("vmContainer");
+
+        const vmCard = document.createElement("div");
+        vmCard.className = "vm-card";
+        vmCard.setAttribute("data-vm", "true");
+
+        vmCard.innerHTML = `
+      <div class="vm-form">
+        <div class="form-group">
+          <label>Nombre de la VM</label>
+          <input class="vm-name" type="text" value="VM-${vmCounter}">
+        </div>
+
+        <div class="form-group">
+          <label>CPU (núcleos)</label>
+          <select class="vm-cpu">
+            <option value="1">1 núcleo</option>
+            <option value="2" selected>2 núcleos</option>
+            <option value="4">4 núcleos</option>
+            <option value="8">8 núcleos</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Memoria (GB)</label>
+          <select class="vm-ram">
+            <option value="1">1 GB</option>
+            <option value="2">2 GB</option>
+            <option value="4" selected>4 GB</option>
+            <option value="8">8 GB</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Almacenamiento (GB)</label>
+          <select class="vm-disk">
+            <option value="2" selected>2 GB</option>
+            <option value="10">10 GB</option>
+            <option value="20">20 GB</option>
+            <option value="50">50 GB</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Imagen</label>
+          <select class="vm-image">
+            <option value="ubuntu-20.04" selected>Ubuntu 20.04</option>
+            <option value="ubuntu-22.04">Ubuntu 22.04</option>
+            <option value="debian-12">Debian 12</option>
+            <option value="alpine">Alpine</option>
+          </select>
+        </div>
+
+        <button class="btn btn-danger btn-block" onclick="removeVm(this)">▢ Eliminar VM</button>
+      </div>
+    `;
+
+        vmContainer.appendChild(vmCard);
+    }
+
+    function removeVm(button) {
+        button.closest(".vm-card").remove();
+
+        const vmContainer = document.getElementById("vmContainer");
+        const cards = vmContainer.querySelectorAll(".vm-card");
+
+        if (cards.length === 0) {
+            vmContainer.innerHTML = `
+        <div class="empty-state" id="emptyVmState">
+          <div class="empty-icon">🖨</div>
+          <p>Aún no agregaste VMs</p>
+        </div>
+      `;
+        }
+    }
+
+    function getVmData() {
+        const vmCards = document.querySelectorAll("[data-vm='true']");
+        const vms = [];
+
+        vmCards.forEach(card => {
+            vms.push({
+                name: card.querySelector(".vm-name").value || "VM",
+                cpu: Number(card.querySelector(".vm-cpu").value),
+                ram: Number(card.querySelector(".vm-ram").value),
+                disk: Number(card.querySelector(".vm-disk").value),
+                image: card.querySelector(".vm-image").value
+            });
+        });
+
+        return vms;
+    }
+
+    function updateReview() {
+        const name = document.getElementById("sliceName").value || "Sin nombre";
+        const vms = getVmData();
+
+        const totalCpu = vms.reduce((sum, vm) => sum + vm.cpu, 0);
+        const totalRam = vms.reduce((sum, vm) => sum + vm.ram, 0);
+        const totalDisk = vms.reduce((sum, vm) => sum + vm.disk, 0);
+
+        document.getElementById("reviewName").textContent = name;
+        document.getElementById("reviewTopology").textContent = selectedTopology;
+        document.getElementById("reviewVmCount").textContent = vms.length;
+        document.getElementById("reviewCpu").textContent = totalCpu;
+        document.getElementById("reviewRam").textContent = totalRam;
+        document.getElementById("reviewDisk").textContent = totalDisk;
+
+        const list = document.getElementById("reviewVmList");
+        list.innerHTML = "";
+
+        if (vms.length === 0) {
+            list.innerHTML = `
+        <div class="vm-summary-row">
+          <span>No hay máquinas virtuales agregadas</span>
+        </div>
+      `;
+            return;
+        }
+
+        vms.forEach(vm => {
+            const row = document.createElement("div");
+            row.className = "vm-summary-row";
+            row.innerHTML = `
+        <strong>${vm.name}</strong>
+        <span class="tag">${vm.image}</span>
+        <span>${vm.cpu}C / ${vm.ram}GB RAM / ${vm.disk}GB almacenamiento</span>
+      `;
+            list.appendChild(row);
+        });
+    }
+
+    async function createSlice() {
+        const name = document.getElementById("sliceName").value || "Nuevo Slice";
+        const vms = getVmData();
+        const totalCpu = vms.reduce((sum, vm) => sum + vm.cpu, 0);
+        const totalRam = vms.reduce((sum, vm) => sum + vm.ram, 0);
+        const totalDisk = vms.reduce((sum, vm) => sum + vm.disk, 0);
+
+        const payload = {
+            name: name,
+            topology: selectedTopology,
+            vmCount: vms.length,
+            totalCpu: totalCpu,
+            totalRam: totalRam,
+            totalDisk: totalDisk,
+            vms: vms
+        };
+
+        try {
+            const response = await fetch("/user/create-slice", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || "No se pudo crear el slice");
+            }
+        } catch (error) {
+            console.error(error);
+            return;
+        }
+
+        const table = document.getElementById("sliceTable");
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+      <td><input type="checkbox"></td>
+      <td><span class="link">▱ ${name}</span></td>
+      <td><span class="tag">${selectedTopology}</span></td>
+      <td><span class="status-running">EN EJECUCIÓN</span></td>
+      <td><strong>${vms.length}</strong></td>
+      <td>0%</td>
+      <td>0%</td>
+      <td>${new Date().toISOString().slice(0, 10)}</td>
+      <td>⊙ &nbsp; ✎ &nbsp; ⋮</td>
+    `;
+
+        table.appendChild(row);
+
+        const totalSlices = document.getElementById("totalSlices");
+        totalSlices.textContent = Number(totalSlices.textContent) + 1;
+
+        const runningSlices = document.getElementById("runningSlices");
+        runningSlices.textContent = Number(runningSlices.textContent) + 1;
+
+        const totalVms = document.getElementById("totalVms");
+        totalVms.textContent = Number(totalVms.textContent) + vms.length;
+
+        resetCreateForm();
+        showPage("slices");
+    }
+
+    function resetCreateForm() {
+        document.getElementById("sliceName").value = "";
+
+        selectedTopology = "Lineal";
+
+        document.querySelectorAll(".topology-card").forEach(card => {
+            card.classList.toggle("selected", card.getAttribute("data-topology") === "Lineal");
+        });
+
+        vmCounter = 0;
+
+        document.getElementById("vmContainer").innerHTML = `
+      <div class="empty-state" id="emptyVmState">
+        <div class="empty-icon">🖨</div>
+        <p>Aún no agregaste VMs</p>
+      </div>
+    `;
+
+        goStep(1);
+    }
+</script>
+</body>
+</html>
