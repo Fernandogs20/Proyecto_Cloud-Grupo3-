@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Slices - Login</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            background:
+                    radial-gradient(circle at 68% 36%, rgba(108, 132, 255, 0.17), transparent 32%),
+                    radial-gradient(circle at 45% 8%, rgba(64, 169, 255, 0.20), transparent 28%),
+                    linear-gradient(135deg, #ffffff 0%, #f8fbff 50%, #f7f9ff 100%);
+            color: #111827;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 430px;
+            margin-top: 45px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .brand {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .logo {
+            width: 46px;
+            height: 46px;
+            position: relative;
+            transform: rotate(45deg);
+            border: 5px solid #1e88ff;
+            border-radius: 6px;
+        }
+
+        .logo::before {
+            content: "";
+            width: 12px;
+            height: 12px;
+            background: #ff4d6d;
+            border-radius: 50%;
+            position: absolute;
+            top: 12px;
+            left: 12px;
+        }
+
+        .logo::after {
+            content: "";
+            width: 18px;
+            height: 5px;
+            background: #1e88ff;
+            position: absolute;
+            right: -15px;
+            top: 16px;
+            border-radius: 6px;
+        }
+
+        .title {
+            font-size: 34px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #4b5563;
+            margin-bottom: 38px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: #111827;
+            opacity: 0.85;
+        }
+
+        .input-group input {
+            width: 100%;
+            height: 41px;
+            border: 1.7px solid transparent;
+            border-radius: 7px;
+            padding: 0 45px 0 38px;
+            font-size: 16px;
+            color: #111827;
+            background: rgba(229, 234, 241, 0.72);
+            outline: none;
+            transition: 0.2s ease;
+        }
+
+        .input-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .input-group input:focus {
+            border-color: #1677ff;
+            background: #ffffff;
+            box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.08);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 18px;
+            color: #6b7280;
+        }
+
+        .remember-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 3px;
+            margin-bottom: 25px;
+            font-size: 15px;
+            color: #111827;
+            text-align: left;
+        }
+
+        .remember-row input {
+            width: 16px;
+            height: 16px;
+            accent-color: #1677ff;
+            cursor: pointer;
+        }
+
+        .login-button {
+            width: 100%;
+            height: 41px;
+            border: none;
+            border-radius: 7px;
+            background: #1677ff;
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .login-button:hover {
+            background: #0958d9;
+        }
+
+        .message {
+            margin-top: 18px;
+            font-size: 14px;
+            color: #dc2626;
+            min-height: 20px;
+        }
+    </style>
+</head>
+
+<body>
+<main class="login-container">
+    <div class="brand">
+        <div class="logo"></div>
+        <h1 class="title">Panel de Slices</h1>
+    </div>
+
+    <p class="subtitle">Plataforma de gestión de slices y máquinas virtuales</p>
+
+    <form method="post" action="/login">
+        <div class="input-group">
+            <span class="input-icon">👤</span>
+            <input
+                    type="text"
+                    name="username"
+                    placeholder="Usuario: admin, user o profesor"
+                    autocomplete="username"
+                    required
+            >
+        </div>
+
+        <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input
+                    type="password"
+                    name="password"
+                    id="password"
+                    placeholder="Contraseña: ant.design"
+                    autocomplete="current-password"
+                    required
+            >
+            <button type="button" class="toggle-password" onclick="togglePassword()">⊘</button>
+        </div>
+
+        <label class="remember-row">
+            <input type="checkbox" checked>
+            <span>Recordarme</span>
+        </label>
+
+        <button type="submit" class="login-button">Entrar</button>
+
+        <p class="message" th:if="${error}" th:text="${error}"></p>
+    </form>
+</main>
+
+<script>
+    function togglePassword() {
+        const password =    document.getElementById("password");
+        password.type = password.type === "password" ? "text" : "password";
+    }
+</script>
+</body>
+</html>
