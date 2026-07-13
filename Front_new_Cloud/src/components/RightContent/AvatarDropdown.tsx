@@ -13,8 +13,21 @@ type GlobalHeaderRightProps = {
 export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   children,
 }) => {
+  const currentUserStorageKey = 'pucp-current-user';
+
   const loginOut = async () => {
-    await outLogin();
+    try {
+      await outLogin({ skipErrorHandler: true });
+    } catch {
+      // Backend logout is optional; local session cleanup still continues.
+    } finally {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(currentUserStorageKey);
+      }
+      startTransition(() => {
+        setInitialState((s) => ({ ...s, currentUser: undefined }));
+      });
+    }
     const { search, pathname } = window.location;
     const urlParams = new URL(window.location.href).searchParams;
     const searchParams = new URLSearchParams({
@@ -33,9 +46,6 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   const onMenuClick: MenuProps['onClick'] = (event) => {
     const { key } = event;
     if (key === 'logout') {
-      startTransition(() => {
-        setInitialState((s) => ({ ...s, currentUser: undefined }));
-      });
       loginOut();
       return;
     }

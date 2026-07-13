@@ -8,8 +8,9 @@ export default function access(
   const role = currentUser?.access;
   return {
     canAdmin: role === 'admin',
-    canProfessor: role === 'profesor',
+    canProfessor: role === 'profesor' || role === 'professor',
     canStudent: role === 'user',
-    canProfessorOrStudent: role === 'profesor' || role === 'user',
+    canProfessorOrStudent:
+      role === 'profesor' || role === 'professor' || role === 'user',
   };
 }

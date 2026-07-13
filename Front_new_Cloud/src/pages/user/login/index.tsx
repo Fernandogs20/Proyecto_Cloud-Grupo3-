@@ -79,33 +79,43 @@ const Login: React.FC = () => {
   const { styles } = useStyles();
   const { message } = App.useApp();
   const intl = useIntl();
-
-  const fetchUserInfo = async () => {
-    const userInfo = await initialState?.fetchUserInfo?.();
-    if (userInfo) {
-      startTransition(() => {
-        setInitialState((s) => ({
-          ...s,
-          currentUser: userInfo,
-        }));
-      });
-    }
-    return userInfo;
-  };
+  const currentUserStorageKey = 'pucp-current-user';
 
   const handleSubmit = async (values: API.LoginParams) => {
     try {
       const msg = await login({ ...values, type });
-      if (msg.status === 'ok') {
+      const role = msg.role ?? msg.currentAuthority ?? 'user';
+      const isAuthenticated = Boolean(msg.role || msg.currentAuthority || msg.username || msg.id);
+
+      if (isAuthenticated) {
         const defaultLoginSuccessMessage = intl.formatMessage({
           id: 'pages.login.success',
           defaultMessage: 'Sesión iniciada correctamente.',
         });
         message.success(defaultLoginSuccessMessage);
-        const userInfo = await fetchUserInfo();
-        window.location.href = getRoleHomePath(
-          msg.currentAuthority ?? userInfo?.access,
-        );
+
+        const currentUser: API.CurrentUser = {
+          access: role,
+          email: msg.email,
+          name: msg.username ?? values.username,
+          userid: msg.id ?? msg.username ?? values.username,
+        };
+
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(
+            currentUserStorageKey,
+            JSON.stringify(currentUser),
+          );
+        }
+
+        startTransition(() => {
+          setInitialState((state) => ({
+            ...state,
+            currentUser,
+          }));
+        });
+
+        window.location.href = getRoleHomePath(role);
         return;
       }
       setUserLoginState(msg);

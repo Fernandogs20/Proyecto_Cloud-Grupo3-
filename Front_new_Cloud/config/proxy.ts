@@ -15,13 +15,13 @@ export default {
   test: {
     // localhost:8000/api/** -> https://pro-api.ant-design-demo.workers.dev/api/**
     '/api/': {
-      target: 'https://pro-api.ant-design-demo.workers.dev',
+      target: process.env.API_BASE_URL || 'http://localhost:4000',
       changeOrigin: true,
     },
   },
   pre: {
     '/api/': {
-      target: 'your pre url',
+      target: process.env.API_BASE_URL || 'http://localhost:4000',
       changeOrigin: true,
     },
   },

@@ -24,9 +24,13 @@ declare namespace API {
   };
 
   type LoginResult = {
+    id?: string;
+    username?: string;
+    email?: string;
     status?: string;
     type?: string;
     currentAuthority?: string;
+    role?: 'admin' | 'user' | 'professor' | 'profesor';
   };
 
   type PageParams = {

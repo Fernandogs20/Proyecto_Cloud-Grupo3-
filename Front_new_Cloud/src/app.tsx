@@ -15,6 +15,34 @@ import { errorConfig } from './requestErrorConfig';
 
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
+const currentUserStorageKey = 'pucp-current-user';
+const resolveApiBaseURL = () => {
+  if (process.env.API_BASE_URL) {
+    return process.env.API_BASE_URL;
+  }
+
+  if (typeof window !== 'undefined') {
+    const { hostname } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:4000';
+    }
+  }
+
+  return '';
+};
+
+const readStoredCurrentUser = (): API.CurrentUser | undefined => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  try {
+    const storedUser = window.localStorage.getItem(currentUserStorageKey);
+    return storedUser ? (JSON.parse(storedUser) as API.CurrentUser) : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
@@ -38,8 +66,19 @@ export async function getInitialState(): Promise<{
           timestamp: Date.now(),
         },
       });
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          currentUserStorageKey,
+          JSON.stringify(msg.data),
+        );
+      }
       return msg.data;
     } catch (_error) {
+      const storedUser = readStoredCurrentUser();
+      if (storedUser) {
+        return storedUser;
+      }
+
       const { pathname, search, hash } = history.location;
       history.replace(
         `${loginPath}?redirect=${encodeURIComponent(pathname + search + hash)}`,
@@ -50,7 +89,7 @@ export async function getInitialState(): Promise<{
   // If not login page, execute
   const { location } = history;
   if (![loginPath].includes(location.pathname)) {
-    const currentUser = await fetchUserInfo();
+    const currentUser = readStoredCurrentUser() ?? (await fetchUserInfo());
     return {
       fetchUserInfo,
       currentUser,
@@ -120,7 +159,9 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
 
 // Request configuration.
 export const request: RequestConfig = {
-  baseURL: isDev ? '' : 'https://pro-api.ant-design-demo.workers.dev',
+  baseURL:
+    resolveApiBaseURL() ||
+    (isDev ? '' : 'https://pro-api.ant-design-demo.workers.dev'),
   ...errorConfig,
 };
 

@@ -12,12 +12,15 @@ import {
   type ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
+import { request } from '@umijs/max';
+import { useModel } from '@umijs/max';
 import {
   Button,
   Card,
   Col,
   Dropdown,
   type MenuProps,
+  Spin,
   message,
   Popconfirm,
   Row,
@@ -26,75 +29,97 @@ import {
   Tag,
   Tooltip,
 } from 'antd';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'umi';
 import useStyles from './index.style';
 
 interface SliceRecord {
   id: string;
+  ownerId: string;
+  ownerName?: string;
   name: string;
-  topology: 'linear' | 'mesh' | 'tree' | 'ring' | 'bus';
-  status: 'running' | 'stopped' | 'creating' | 'error';
-  vms: number;
-  owner: string;
+  topologyType: 'linear' | 'mesh' | 'tree' | 'ring' | 'bus' | string;
+  status: 'pending' | 'running' | 'stopped' | 'error' | string;
+  driver: string;
+  availabilityZone: string | null;
   createdAt: string;
-  cpuUsage: number;
-  memoryUsage: number;
-  storageUsage: number;
 }
+
+type SliceApiResponse =
+  | SliceRecord[]
+  | {
+      success?: boolean;
+      data?: SliceRecord[];
+      message?: string;
+    };
+
+const currentUserStorageKey = 'pucp-current-user';
+
+const readStoredCurrentUser = (): API.CurrentUser | undefined => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  try {
+    const storedUser = window.localStorage.getItem(currentUserStorageKey);
+    return storedUser ? (JSON.parse(storedUser) as API.CurrentUser) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const normalizeSlice = (
+  slice: Partial<SliceRecord> & {
+    id?: string;
+    owner_id?: string;
+    topology_type?: string;
+    availability_zone?: string | null;
+    created_at?: string;
+  },
+): SliceRecord => ({
+  id: slice.id ?? `slice-${Math.random().toString(36).slice(2, 9)}`,
+  ownerId: slice.ownerId ?? slice.owner_id ?? 'N/D',
+  ownerName: slice.ownerName,
+  name: slice.name ?? 'Sin nombre',
+  topologyType: slice.topologyType ?? slice.topology_type ?? 'linear',
+  status: slice.status ?? 'pending',
+  driver: slice.driver ?? 'N/D',
+  availabilityZone: slice.availabilityZone ?? slice.availability_zone ?? null,
+  createdAt: slice.createdAt ?? slice.created_at ?? new Date().toISOString(),
+});
+
+const formatOwnerLabel = (
+  ownerId: string,
+  currentUser?: API.CurrentUser,
+  ownerName?: string,
+) => {
+  if (ownerName) {
+    return ownerName;
+  }
+
+  if (currentUser?.userid === ownerId || currentUser?.name === ownerId) {
+    return currentUser.name ?? currentUser.userid ?? ownerId;
+  }
+
+  return ownerId;
+};
 
 const SliceList: React.FC = () => {
   const { styles } = useStyles();
   const navigate = useNavigate();
+  const { initialState } = useModel('@@initialState');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-
-  const [slices, setSlices] = useState<SliceRecord[]>([
-    {
-      id: 'slice-001',
-      name: 'Cluster de Producción',
-      topology: 'mesh',
-      status: 'running',
-      vms: 12,
-      owner: 'admin',
-      createdAt: '2026-05-15',
-      cpuUsage: 75,
-      memoryUsage: 82,
-      storageUsage: 45,
-    },
-    {
-      id: 'slice-002',
-      name: 'Entorno de Desarrollo',
-      topology: 'linear',
-      status: 'running',
-      vms: 5,
-      owner: 'admin',
-      createdAt: '2026-05-10',
-      cpuUsage: 32,
-      memoryUsage: 48,
-      storageUsage: 28,
-    },
-    {
-      id: 'slice-003',
-      name: 'Red de Pruebas',
-      topology: 'tree',
-      status: 'stopped',
-      vms: 8,
-      owner: 'admin',
-      createdAt: '2026-04-20',
-      cpuUsage: 0,
-      memoryUsage: 0,
-      storageUsage: 15,
-    },
-  ]);
+  const [slices, setSlices] = useState<SliceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'pending':
+        return 'gold';
       case 'running':
         return 'green';
       case 'stopped':
         return 'red';
-      case 'creating':
-        return 'blue';
       case 'error':
         return 'volcano';
       default:
@@ -115,9 +140,9 @@ const SliceList: React.FC = () => {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
+      pending: 'PENDIENTE',
       running: 'EN EJECUCIÓN',
       stopped: 'DETENIDO',
-      creating: 'CREANDO',
       error: 'ERROR',
     };
     return labels[status] || status.toUpperCase();
@@ -160,11 +185,11 @@ const SliceList: React.FC = () => {
     },
     {
       title: 'Topología',
-      dataIndex: 'topology',
-      key: 'topology',
+      dataIndex: 'topologyType',
+      key: 'topologyType',
       width: 120,
-      render: (topology) => (
-        <Tag color="blue">{getTopologyLabel(String(topology ?? ''))}</Tag>
+      render: (topologyType) => (
+        <Tag color="blue">{getTopologyLabel(String(topologyType ?? ''))}</Tag>
       ),
     },
     {
@@ -179,31 +204,33 @@ const SliceList: React.FC = () => {
       ),
     },
     {
-      title: 'VMs',
-      dataIndex: 'vms',
-      key: 'vms',
-      width: 80,
-      render: (vms) => <strong>{Number(vms ?? 0)}</strong>,
+      title: 'Propietario',
+      dataIndex: 'ownerId',
+      key: 'ownerId',
+      width: 140,
+      render: (ownerId, record) =>
+        formatOwnerLabel(String(ownerId ?? 'N/D'), initialState?.currentUser, record.ownerName),
     },
     {
-      title: 'Uso de CPU',
-      dataIndex: 'cpuUsage',
-      key: 'cpuUsage',
-      width: 120,
-      render: (usage) => `${Number(usage ?? 0)}%`,
+      title: 'Driver',
+      dataIndex: 'driver',
+      key: 'driver',
+      width: 140,
+      render: (driver) => <Tag color="geekblue">{String(driver ?? 'N/D')}</Tag>,
     },
     {
-      title: 'Uso de Memoria',
-      dataIndex: 'memoryUsage',
-      key: 'memoryUsage',
-      width: 120,
-      render: (usage) => `${Number(usage ?? 0)}%`,
+      title: 'Zona',
+      dataIndex: 'availabilityZone',
+      key: 'availabilityZone',
+      width: 140,
+      render: (zone) => zone ?? 'N/D',
     },
     {
       title: 'Creado',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 120,
+      width: 180,
+      render: (value) => new Date(String(value ?? '')).toLocaleString('es-PE'),
     },
     {
       title: 'Acciones',
@@ -272,6 +299,51 @@ const SliceList: React.FC = () => {
     onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
   };
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const currentUserId =
+      initialState?.currentUser?.userid ??
+      initialState?.currentUser?.name ??
+      readStoredCurrentUser()?.userid;
+
+    const loadSlices = async () => {
+      setLoading(true);
+      try {
+        if (!currentUserId) {
+          setSlices([]);
+          return;
+        }
+
+        const payload = await request<SliceApiResponse>(
+          `/api/users/${currentUserId}/slices`,
+          {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'Cache-Control': 'no-cache' },
+          },
+        );
+        const records = Array.isArray(payload)
+          ? payload
+          : payload.data ?? [];
+
+        setSlices(records.map((slice) => normalizeSlice(slice)));
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          message.error('No se pudieron cargar los slices desde la API');
+          setSlices([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSlices();
+
+    return () => controller.abort();
+  }, [initialState?.currentUser?.userid, initialState?.currentUser?.name]);
+
   return (
     <PageContainer
       header={{
@@ -304,8 +376,8 @@ const SliceList: React.FC = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="En ejecución"
-                value={slices.filter((s) => s.status === 'running').length}
+                title="Pendientes"
+                value={slices.filter((s) => s.status === 'pending').length}
                 styles={{ content: { color: '#52c41a' } }}
               />
             </Card>
@@ -313,20 +385,16 @@ const SliceList: React.FC = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="Total de VMs"
-                value={slices.reduce((sum, s) => sum + s.vms, 0)}
+                title="Con zona asignada"
+                value={slices.filter((s) => Boolean(s.availabilityZone)).length}
               />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="Uso promedio de CPU"
-                value={(
-                  slices.reduce((sum, s) => sum + s.cpuUsage, 0) /
-                  Math.max(slices.length, 1)
-                ).toFixed(1)}
-                suffix="%"
+                title="Drivers distintos"
+                value={new Set(slices.map((slice) => slice.driver)).size}
               />
             </Card>
           </Col>
@@ -334,34 +402,36 @@ const SliceList: React.FC = () => {
 
         {/* Table */}
         <Card>
-          <ProTable
-            headerTitle="Slice"
-            columns={columns}
-            dataSource={slices}
-            rowKey="id"
-            search={false}
-            toolBarRender={() => [
-              selectedRowKeys.length > 0 && (
-                <Popconfirm
-                  key="delete-batch"
-                  title="Eliminar slices"
-                  description="¿Seguro que quieres eliminar los slices seleccionados?"
-                  okText="Sí"
-                  cancelText="No"
-                  onConfirm={handleBatchDelete}
-                >
-                  <Button danger>
-                    Eliminar seleccionados ({selectedRowKeys.length})
-                  </Button>
-                </Popconfirm>
-              ),
-            ]}
-            rowSelection={rowSelection}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-            }}
-          />
+          <Spin spinning={loading}>
+            <ProTable
+              headerTitle="Slice"
+              columns={columns}
+              dataSource={slices}
+              rowKey="id"
+              search={false}
+              toolBarRender={() => [
+                selectedRowKeys.length > 0 && (
+                  <Popconfirm
+                    key="delete-batch"
+                    title="Eliminar slices"
+                    description="¿Seguro que quieres eliminar los slices seleccionados?"
+                    okText="Sí"
+                    cancelText="No"
+                    onConfirm={handleBatchDelete}
+                  >
+                    <Button danger>
+                      Eliminar seleccionados ({selectedRowKeys.length})
+                    </Button>
+                  </Popconfirm>
+                ),
+              ]}
+              rowSelection={rowSelection}
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+              }}
+            />
+          </Spin>
         </Card>
       </div>
     </PageContainer>
