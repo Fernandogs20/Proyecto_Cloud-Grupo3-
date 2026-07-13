@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Topologías</title>
+    <script src="https://cdn.jsdelivr.net/npm/keycloak-js@24.0.0/dist/keycloak.min.js"></script>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* Contenedor principal */
+        .card {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 550px; /* Incrementado ligeramente para ajustar los 3 botones */
+        }
+
+        h1 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        /* Estilos de botones */
+        .botones-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, opacity 0.3s;
+            width: 140px;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-crear {
+            background-color: #0d6efd; /* Azul */
+        }
+
+        .btn-crear:hover:not(:disabled) {
+            background-color: #0b5ed7;
+        }
+
+        .btn-borrar {
+            background-color: #dc3545; /* Rojo */
+        }
+
+        .btn-borrar:hover:not(:disabled) {
+            background-color: #c82333;
+        }
+
+        /* NUEVO: Estilo para el botón de Cerrar Sesión */
+        .btn-logout {
+            background-color: #6c757d; /* Gris */
+        }
+
+        .btn-logout:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+
+        /* Estilo para mostrar el resultado como consola */
+        .consola {
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: left;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            overflow-x: auto;
+            min-height: 50px;
+            display: none; /* Oculto por defecto */
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading" style="text-align: center; font-family: sans-serif;">
+        <h2>Conectando con Keycloak...</h2>
+    </div>
+
+    <div id="app" class="card" style="display: none;">
+        <h1>Gestión de Topologías</h1>
+        
+        <div class="botones-container">
+            <button id="btnCrear" class="btn btn-crear">Crear</button>
+            <button id="btnBorrar" class="btn btn-borrar">Borrar</button>
+            <button id="btnCerrarSesion" class="btn btn-logout">Salir</button>
+        </div>
+
+        <div id="resultado" class="consola"></div>
+    </div>
+
+    <script>
+        // Configuración de Keycloak
+        const keycloak = new Keycloak({
+            url: 'http://localhost:8080',
+            realm: 'mi-reino',
+            clientId: 'mi-frontend'
+        });
+
+        // Inicializamos forzando el login
+        keycloak.init({ onLoad: 'login-required', checkLoginIframe: false }).then(authenticated => {
+            if (authenticated) {
+                // Ocultar carga y mostrar la app
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                
+                // Referencias a los elementos
+                const btnCrear = document.getElementById('btnCrear');
+                const btnBorrar = document.getElementById('btnBorrar');
+                const btnCerrarSesion = document.getElementById('btnCerrarSesion'); // NUEVO
+                const divResultado = document.getElementById('resultado');
+
+                async function ejecutarAccion(url, boton, textoOriginal, textoCarga, bodyData = null) {
+                    boton.disabled = true;
+                    boton.innerText = textoCarga;
+                    
+                    divResultado.style.display = 'block';
+                    divResultado.style.color = '#aaaaaa';
+                    divResultado.innerText = `[INFO] Conectando con el servidor...\n[INFO] Esto puede tardar unos segundos.`;
+
+                    try {
+                        const opcionesFetch = {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + keycloak.token,
+                                'Content-Type': 'application/json'
+                            }
+                        };
+
+                        if (bodyData) {
+                            opcionesFetch.body = JSON.stringify(bodyData);
+                        }
+
+                        const response = await fetch(url, opcionesFetch);
+                        const data = await response.json();
+                        
+                        divResultado.style.color = '#00ff00';
+                        divResultado.innerText = JSON.stringify(data, null, 2);
+
+                    } catch (error) {
+                        divResultado.style.color = '#ff4444';
+                        divResultado.innerText = `[ERROR CRÍTICO] Falló la conexión con FastAPI.\nDetalle: ${error.message}`;
+                    } finally {
+                        boton.disabled = false;
+                        boton.innerText = textoOriginal;
+                    }
+                }
+
+                // Eventos de los botones de acción
+                btnCrear.addEventListener('click', () => {
+                    const parametros = {
+                        name_topology: "test",
+                        vlan1: 230,
+                        vlan2: 130,
+                        port: 31100
+                    };
+                    ejecutarAccion('http://localhost:8000/crear-topologia', btnCrear, 'Crear', 'Creando...', parametros);
+                });
+
+                btnBorrar.addEventListener('click', () => {
+                    const parametros = {
+                        name_topology: "test",
+                    };
+                    ejecutarAccion('http://localhost:8000/borrar-topologia', btnBorrar, 'Borrar', 'Borrando...', parametros);
+                });
+
+                // NUEVO: Evento para cerrar sesión en Keycloak
+                btnCerrarSesion.addEventListener('click', () => {
+                    // Cierra la sesión en el servidor de Keycloak y redirige de vuelta a la app limpia
+                    keycloak.logout({
+                        redirectUri: window.location.href
+                    });
+                });
+            }
+        }).catch(error => {
+            document.getElementById('loading').innerHTML = `<h2 style="color:red;">Error de autenticación</h2><p>${error}</p>`;
+            console.error("Error al conectar con Keycloak:", error);
+        });
+    </script>
+</body>
+</html>
